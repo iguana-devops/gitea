@@ -376,17 +376,19 @@ func (m *webhookNotifier) NotifyUpdateComment(ctx context.Context, doer *user_mo
 	}
 
 	var eventType webhook_module.HookEventType
+	var pullRequest *api.PullRequest
 	if c.Issue.IsPull {
 		eventType = webhook_module.HookEventPullRequestComment
+		pullRequest = convert.ToAPIPullRequest(ctx, c.Issue.PullRequest, nil)
 	} else {
 		eventType = webhook_module.HookEventIssueComment
 	}
-
 	permission, _ := access_model.GetUserRepoPermission(ctx, c.Issue.Repo, doer)
-	if err := PrepareWebhooks(ctx, EventSource{Repository: c.Issue.Repo}, eventType, &api.IssueCommentPayload{
-		Action:  api.HookIssueCommentEdited,
-		Issue:   convert.ToAPIIssue(ctx, c.Issue),
-		Comment: convert.ToAPIComment(ctx, c.Issue.Repo, c),
+	issueCommentPayload := &api.IssueCommentPayload{
+		Action:      api.HookIssueCommentEdited,
+		Issue:       convert.ToAPIIssue(ctx, c.Issue),
+		PullRequest: pullRequest,
+		Comment:     convert.ToAPIComment(ctx, c.Issue.Repo, c),
 		Changes: &api.ChangesPayload{
 			Body: &api.ChangesFromPayload{
 				From: oldContent,
@@ -395,7 +397,8 @@ func (m *webhookNotifier) NotifyUpdateComment(ctx context.Context, doer *user_mo
 		Repository: convert.ToRepo(ctx, c.Issue.Repo, permission),
 		Sender:     convert.ToUser(ctx, doer, nil),
 		IsPull:     c.Issue.IsPull,
-	}); err != nil {
+	}
+	if err := PrepareWebhooks(ctx, EventSource{Repository: c.Issue.Repo}, eventType, issueCommentPayload); err != nil {
 		log.Error("PrepareWebhooks [comment_id: %d]: %v", c.ID, err)
 	}
 }
@@ -404,21 +407,24 @@ func (m *webhookNotifier) NotifyCreateIssueComment(ctx context.Context, doer *us
 	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
 	var eventType webhook_module.HookEventType
+	var pullRequest *api.PullRequest
 	if issue.IsPull {
 		eventType = webhook_module.HookEventPullRequestComment
+		pullRequest = convert.ToAPIPullRequest(ctx, issue.PullRequest, nil)
 	} else {
 		eventType = webhook_module.HookEventIssueComment
 	}
-
 	permission, _ := access_model.GetUserRepoPermission(ctx, repo, doer)
-	if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, eventType, &api.IssueCommentPayload{
-		Action:     api.HookIssueCommentCreated,
-		Issue:      convert.ToAPIIssue(ctx, issue),
-		Comment:    convert.ToAPIComment(ctx, repo, comment),
-		Repository: convert.ToRepo(ctx, repo, permission),
-		Sender:     convert.ToUser(ctx, doer, nil),
-		IsPull:     issue.IsPull,
-	}); err != nil {
+	issueCommentPayload := &api.IssueCommentPayload{
+		Action:      api.HookIssueCommentCreated,
+		Issue:       convert.ToAPIIssue(ctx, issue),
+		PullRequest: pullRequest,
+		Comment:     convert.ToAPIComment(ctx, repo, comment),
+		Repository:  convert.ToRepo(ctx, repo, permission),
+		Sender:      convert.ToUser(ctx, doer, nil),
+		IsPull:      issue.IsPull,
+	}
+	if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, eventType, issueCommentPayload); err != nil {
 		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
 	}
 }
@@ -441,21 +447,25 @@ func (m *webhookNotifier) NotifyDeleteComment(ctx context.Context, doer *user_mo
 	}
 
 	var eventType webhook_module.HookEventType
+	var pullRequest *api.PullRequest
 	if comment.Issue.IsPull {
 		eventType = webhook_module.HookEventPullRequestComment
+		pullRequest = convert.ToAPIPullRequest(ctx, comment.Issue.PullRequest, nil)
 	} else {
 		eventType = webhook_module.HookEventIssueComment
 	}
-
 	permission, _ := access_model.GetUserRepoPermission(ctx, comment.Issue.Repo, doer)
-	if err := PrepareWebhooks(ctx, EventSource{Repository: comment.Issue.Repo}, eventType, &api.IssueCommentPayload{
-		Action:     api.HookIssueCommentDeleted,
-		Issue:      convert.ToAPIIssue(ctx, comment.Issue),
-		Comment:    convert.ToAPIComment(ctx, comment.Issue.Repo, comment),
-		Repository: convert.ToRepo(ctx, comment.Issue.Repo, permission),
-		Sender:     convert.ToUser(ctx, doer, nil),
-		IsPull:     comment.Issue.IsPull,
-	}); err != nil {
+	issueCommentPayload := &api.IssueCommentPayload{
+		Action:      api.HookIssueCommentDeleted,
+		Issue:       convert.ToAPIIssue(ctx, comment.Issue),
+		PullRequest: pullRequest,
+		Comment:     convert.ToAPIComment(ctx, comment.Issue.Repo, comment),
+		Repository:  convert.ToRepo(ctx, comment.Issue.Repo, permission),
+		Sender:      convert.ToUser(ctx, doer, nil),
+		IsPull:      comment.Issue.IsPull,
+	}
+
+	if err := PrepareWebhooks(ctx, EventSource{Repository: comment.Issue.Repo}, eventType, issueCommentPayload); err != nil {
 		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
 	}
 }
