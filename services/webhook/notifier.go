@@ -714,11 +714,12 @@ func (m *webhookNotifier) NotifyPullRequestReview(ctx context.Context, pr *issue
 		return
 	}
 	if err := PrepareWebhooks(ctx, EventSource{Repository: review.Issue.Repo}, reviewHookType, &api.PullRequestPayload{
-		Action:      api.HookIssueReviewed,
-		Index:       review.Issue.Index,
-		PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
-		Repository:  convert.ToRepo(ctx, review.Issue.Repo, permission),
-		Sender:      convert.ToUser(ctx, review.Reviewer, nil),
+		Action:            api.HookIssueReviewed,
+		Index:             review.Issue.Index,
+		PullRequest:       convert.ToAPIPullRequest(ctx, pr, nil),
+		RequestedReviewer: convert.ToUser(ctx, review.Reviewer, nil),
+		Repository:        convert.ToRepo(ctx, review.Issue.Repo, permission),
+		Sender:            convert.ToUser(ctx, review.Reviewer, nil),
 		Review: &api.ReviewPayload{
 			Type:    string(reviewHookType),
 			Content: review.Content,
