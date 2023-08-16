@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	sync_module "code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/translation"
 )
 
@@ -70,9 +71,16 @@ func (t *Task) Run() {
 
 // RunWithUser will run the task incrementing the cron counter at the time with User
 func (t *Task) RunWithUser(doer *user_model.User, config Config) {
-	if !taskStatusTable.StartIfNotRunning(t.Name) {
+	// the same task can run only once at the same time
+	lock := sync_module.GetLock(fmt.Sprintf("cron_tasks_%s", t.Name))
+	if success, err := lock.TryLock(); err != nil {
+		log.Error("Unable to lock cron task %s Error: %v", t.Name, err)
+		return
+	} else if !success {
+		// get lock failed, so that there must be another task are running.
 		return
 	}
+
 	t.lock.Lock()
 	if config == nil {
 		config = t.config
@@ -80,7 +88,9 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 	t.ExecTimes++
 	t.lock.Unlock()
 	defer func() {
-		taskStatusTable.Stop(t.Name)
+		if _, err := lock.Unlock(); err != nil {
+			log.Error("Unable to unlock cron task %s Error: %v", t.Name, err)
+		}
 		if err := recover(); err != nil {
 			// Recover a panic within the
 			combinedErr := fmt.Errorf("%s\n%s", err, log.Stack(2))
