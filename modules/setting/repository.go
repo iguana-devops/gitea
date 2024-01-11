@@ -85,6 +85,7 @@ var (
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
 			TestConflictingPatchesWithGitApply       bool
+			CheckOnlyLastUpdatedDays                 int
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -209,6 +210,7 @@ var (
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
 			TestConflictingPatchesWithGitApply       bool
+			CheckOnlyLastUpdatedDays                 int
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See
@@ -223,6 +225,8 @@ var (
 			DefaultMergeMessageOfficialApproversOnly: true,
 			PopulateSquashCommentWithCommitMessages:  false,
 			AddCoCommitterTrailers:                   true,
+			TestConflictingPatchesWithGitApply:       false,
+			CheckOnlyLastUpdatedDays:                 -1,
 		},
 
 		// Issue settings
