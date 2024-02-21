@@ -167,15 +167,7 @@ func SettingsPost(ctx *context.Context) {
 			form.Private = repo.BaseRepo.IsPrivate || repo.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate
 		}
 
-		visibilityChanged := repo.IsPrivate != form.Private
-		// when ForcePrivate enabled, you could change public repo to private, but only admin users can change private to public
-		if visibilityChanged && setting.Repository.ForcePrivate && !form.Private && !ctx.Doer.IsAdmin {
-			ctx.RenderWithErr(ctx.Tr("form.repository_force_private"), tplSettingsOptions, form)
-			return
-		}
-
-		repo.IsPrivate = form.Private
-		if err := repo_service.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
+		if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}
@@ -864,6 +856,43 @@ func SettingsPost(ctx *context.Context) {
 		log.Trace("Repository wiki deleted: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.wiki_deletion_success"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+
+	case "change-visiblity":
+		if ctx.HasError() {
+			ctx.HTML(http.StatusOK, tplSettingsOptions)
+			return
+		}
+		if !ctx.Repo.IsOwner() {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+		if repo.Name != form.RepoName {
+			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+			return
+		}
+
+		private := form.Private
+
+		if repo.IsFork {
+			private = repo.BaseRepo.IsPrivate || repo.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate
+		}
+
+		visibilityChanged := repo.IsPrivate != private
+		if visibilityChanged && setting.Repository.ForcePrivate && !private && !ctx.Doer.IsAdmin {
+			ctx.RenderWithErr(ctx.Tr("form.repository_force_private"), tplSettingsOptions, form)
+			return
+		}
+
+		repo.IsPrivate = private
+		if err := repo_service.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
+			ctx.ServerError("UpdateRepository", err)
+			return
+		}
+
+		log.Trace("Repository visibility settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 
 	case "archive":
