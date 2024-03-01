@@ -96,6 +96,7 @@ type Project struct {
 	RepoID      int64                  `xorm:"INDEX"`
 	Repo        *repo_model.Repository `xorm:"-"`
 	CreatorID   int64                  `xorm:"NOT NULL"`
+	Creator     *user_model.User       `xorm:"-"`
 	IsClosed    bool                   `xorm:"INDEX"`
 	BoardType   BoardType
 	CardType    CardType
@@ -113,6 +114,14 @@ func (p *Project) LoadOwner(ctx context.Context) (err error) {
 		return nil
 	}
 	p.Owner, err = user_model.GetUserByID(ctx, p.OwnerID)
+	return err
+}
+
+func (p *Project) LoadCreator(ctx context.Context) (err error) {
+	if p.Creator != nil {
+		return nil
+	}
+	p.Creator, err = user_model.GetUserByID(ctx, p.CreatorID)
 	return err
 }
 
