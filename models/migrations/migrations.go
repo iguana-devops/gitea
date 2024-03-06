@@ -499,7 +499,7 @@ var migrations = []Migration{
 	// v259 -> v260
 	NewMigration("Convert scoped access tokens", v1_20.ConvertScopedAccessTokens),
 
-	// Gitea 1.20.0 ends at 260
+	// Gitea 1.20.0 ends at v260
 
 	// v260 -> v261
 	NewMigration("Drop custom_labels column of action_runner table", v1_21.DropCustomLabelsColumnOfActionRunner),
@@ -562,6 +562,8 @@ var migrations = []Migration{
 	NewMigration("Use Slug instead of ID for Badges", v1_22.UseSlugInsteadOfIDForBadges),
 	// v288 -> v289
 	NewMigration("Add user_blocking table", v1_22.AddUserBlockingTable),
+	// v289 -> v290
+	NewMigration("Add Repository Licenses", v1_22.AddRepositoryLicenses),
 }
 
 // GetCurrentDBVersion returns the current db version

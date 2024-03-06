@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // gitShortEmptySha Git short empty SHA
@@ -546,6 +547,14 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 
 	if err = repo_model.UpdateRepositoryUpdatedTime(ctx, m.RepoID, commitDate); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: unable to update repository 'updated_unix': %v", m.Repo, err)
+		return false
+	}
+
+	// Update License
+	if err = repo_service.AddRepoToLicenseUpdaterQueue(&repo_service.LicenseUpdaterOptions{
+		RepoID: m.Repo.ID,
+	}); err != nil {
+		log.Error("SyncMirrors [repo: %-v]: unable to add repo to license updater queue: %v", m.Repo, err)
 		return false
 	}
 
