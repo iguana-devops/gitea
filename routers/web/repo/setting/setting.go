@@ -58,6 +58,9 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
+	ctx.Data["Err_RepoSize"] = ctx.Repo.Repository.IsRepoSizeOversized(ctx.Repo.Repository.GetActualSizeLimit() / 10) // less than 10% left
+	ctx.Data["ActualSizeLimit"] = ctx.Repo.Repository.GetActualSizeLimit()
+	ctx.Data["EnableSizeLimit"] = setting.EnableSizeLimit
 
 	signing, _ := asymkey_service.SigningKey(ctx, ctx.Repo.Repository.RepoPath())
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
@@ -110,6 +113,7 @@ func SettingsPost(ctx *context.Context) {
 	ctx.Data["CodeIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	repo := ctx.Repo.Repository
+	ctx.Data["Err_RepoSize"] = repo.IsRepoSizeOversized(repo.SizeLimit / 10) // less than 10% left
 
 	switch ctx.FormString("action") {
 	case "update":
@@ -173,6 +177,19 @@ func SettingsPost(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("form.repository_force_private"), tplSettingsOptions, form)
 			return
 		}
+
+		if form.RepoSizeLimit < 0 {
+			ctx.Data["Err_RepoSizeLimit"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.form.repo_size_limit_negative"), tplSettingsOptions, &form)
+			return
+		}
+
+		if !ctx.Doer.IsAdmin && repo.SizeLimit != form.RepoSizeLimit {
+			ctx.Data["Err_RepoSizeLimit"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.form.repo_size_limit_only_by_admins"), tplSettingsOptions, &form)
+			return
+		}
+		repo.SizeLimit = form.RepoSizeLimit
 
 		repo.IsPrivate = form.Private
 		if err := repo_service.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
