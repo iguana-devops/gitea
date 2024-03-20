@@ -1,6 +1,6 @@
 <div class="flex-container-nav">
 	<div class="ui fluid vertical menu">
-		<div class="header item">{{ctx.Locale.Tr "user.settings"}}</div>
+		<div class="header item">{{ctx.Locale.Tr "settings"}}</div>
 		<a class="{{if .PageIsSettingsProfile}}active {{end}}item" href="{{AppSubUrl}}/user/settings">
 			{{ctx.Locale.Tr "settings.profile"}}
 		</a>
@@ -49,10 +49,10 @@
 		</a>
 		{{end}}
 		<a class="{{if .PageIsSettingsOrganization}}active {{end}}item" href="{{AppSubUrl}}/user/settings/organization">
-			{{ctx.Locale.Tr "settings.organization"}}
+			{{ctx.Locale.Tr "organizations"}}
 		</a>
 		<a class="{{if .PageIsSettingsRepos}}active {{end}}item" href="{{AppSubUrl}}/user/settings/repos">
-			{{ctx.Locale.Tr "settings.repos"}}
+			{{ctx.Locale.Tr "repositories"}}
 		</a>
 	</div>
 </div>

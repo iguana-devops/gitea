@@ -17,8 +17,8 @@
 			<input name="title" placeholder="{{ctx.Locale.Tr "repo.projects.title"}}" value="{{.title}}" autofocus required>
 		</div>
 		<div class="field">
-			<label>{{ctx.Locale.Tr "repo.projects.description"}}</label>
-			<textarea name="content" placeholder="{{ctx.Locale.Tr "repo.projects.description_placeholder"}}">{{.content}}</textarea>
+			<label>{{ctx.Locale.Tr "description"}}</label>
+			<textarea name="content" placeholder="{{ctx.Locale.Tr "description"}}">{{.content}}</textarea>
 		</div>
 
 		{{if not .PageIsEditProjects}}
@@ -57,7 +57,7 @@
 	<div class="divider"></div>
 	<div class="tw-text-right">
 		<a class="ui cancel button" href="{{$.CancelLink}}">
-			{{ctx.Locale.Tr "repo.milestones.cancel"}}
+			{{ctx.Locale.Tr "cancel"}}
 		</a>
 		<button class="ui primary button">
 			{{if .PageIsEditProjects}}{{ctx.Locale.Tr "repo.projects.modify"}}{{else}}{{ctx.Locale.Tr "repo.projects.create"}}{{end}}

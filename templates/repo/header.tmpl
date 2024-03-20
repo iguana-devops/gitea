@@ -15,8 +15,8 @@
 						<div class="repo-icon" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.archived"}}">{{svg "octicon-archive" 18}}</div>
 					{{end}}
 					{{if .IsPrivate}}
-						<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
-						<div class="repo-icon" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.private"}}">{{svg "octicon-lock" 18}}</div>
+						<span class="ui basic label">{{ctx.Locale.Tr "private"}}</span>
+						<div class="repo-icon" data-tooltip-content="{{ctx.Locale.Tr "private"}}">{{svg "octicon-lock" 18}}</div>
 					{{else}}
 						{{if .Owner.Visibility.IsPrivate}}
 							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.internal"}}</span>
@@ -137,7 +137,7 @@
 
 				{{if .Permission.CanRead $.UnitTypeIssues}}
 					<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoLink}}/issues">
-						{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "repo.issues"}}
+						{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "issues"}}
 						{{if .Repository.NumOpenIssues}}
 							<span class="ui small label">{{CountFmt .Repository.NumOpenIssues}}</span>
 						{{end}}
@@ -146,7 +146,7 @@
 
 				{{if .Permission.CanRead $.UnitTypeExternalTracker}}
 					<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoExternalIssuesLink}}" target="_blank" rel="noopener noreferrer">
-						{{svg "octicon-link-external"}} {{ctx.Locale.Tr "repo.issues"}}
+						{{svg "octicon-link-external"}} {{ctx.Locale.Tr "issues"}}
 					</a>
 				{{end}}
 
@@ -215,14 +215,14 @@
 
 				{{if .Permission.IsAdmin}}
 					<a class="{{if .PageIsRepoSettings}}active {{end}} item" href="{{.RepoLink}}/settings">
-						{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
+						{{svg "octicon-tools"}} {{ctx.Locale.Tr "settings"}}
 					</a>
 				{{end}}
 			</div>
 		{{else if .Permission.IsAdmin}}
 			<div class="overflow-menu-items">
 				<a class="{{if .PageIsRepoSettings}}active {{end}} item" href="{{.RepoLink}}/settings">
-					{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
+					{{svg "octicon-tools"}} {{ctx.Locale.Tr "settings"}}
 				</a>
 			</div>
 		{{end}}

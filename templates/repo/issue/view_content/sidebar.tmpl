@@ -79,7 +79,7 @@
 												<input id="message" name="message">
 											</div>
 											<div class="text right actions">
-												<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+												<button class="ui cancel button">{{ctx.Locale.Tr "cancel"}}</button>
 												<button class="ui red button" type="submit">{{ctx.Locale.Tr "ok"}}</button>
 											</div>
 										</form>
@@ -130,7 +130,7 @@
 
 	<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-milestone dropdown">
 		<a class="text muted flex-text-block">
-			<strong>{{ctx.Locale.Tr "repo.issues.new.milestone"}}</strong>
+			<strong>{{ctx.Locale.Tr "milestone"}}</strong>
 			{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
 				{{svg "octicon-gear" 16 "gt-ml-2"}}
 			{{end}}
@@ -270,7 +270,7 @@
 		<div class="divider"></div>
 
 		<div class="ui watching">
-			<span class="text"><strong>{{ctx.Locale.Tr "notification.notifications"}}</strong></span>
+			<span class="text"><strong>{{ctx.Locale.Tr "notifications"}}</strong></span>
 			<div class="gt-mt-3">
 				{{template "repo/issue/view_content/watching" .}}
 			</div>
@@ -318,7 +318,7 @@
 							</div>
 							<div class="actions">
 								<button class="ui primary approve button">{{ctx.Locale.Tr "repo.issues.add_time_short"}}</button>
-								<button class="ui cancel button">{{ctx.Locale.Tr "repo.issues.add_time_cancel"}}</button>
+								<button class="ui cancel button">{{ctx.Locale.Tr "cancel"}}</button>
 							</div>
 						</div>
 						<button class="ui fluid button issue-add-time gt-mt-3" data-tooltip-content='{{ctx.Locale.Tr "repo.issues.add_time"}}'>
@@ -539,7 +539,7 @@
 					{{end}}</p>
 				</div>
 				{{$ModalButtonCancelText := ctx.Locale.Tr "repo.issues.dependency.cancel"}}
-				{{$ModalButtonOkText := ctx.Locale.Tr "repo.issues.dependency.remove"}}
+				{{$ModalButtonOkText := ctx.Locale.Tr "remove"}}
 				{{template "base/modal_actions_confirm" (dict "." . "ModalButtonCancelText" $ModalButtonCancelText "ModalButtonOkText" $ModalButtonOkText)}}
 			</div>
 		{{end}}
@@ -633,7 +633,7 @@
 					{{end}}
 
 					<div class="text right actions">
-						<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+						<button class="ui cancel button">{{ctx.Locale.Tr "cancel"}}</button>
 						<button class="ui red button">
 							{{if .Issue.IsLocked}}
 								{{ctx.Locale.Tr "repo.issues.unlock_confirm"}}

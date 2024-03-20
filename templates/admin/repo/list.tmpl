@@ -14,9 +14,9 @@
 				<thead>
 					<tr>
 						<th data-sortt-asc="oldest" data-sortt-desc="newest">ID{{SortArrow "oldest" "newest" $.SortType false}}</th>
-						<th>{{ctx.Locale.Tr "admin.repos.owner"}}</th>
+						<th>{{ctx.Locale.Tr "owner"}}</th>
 						<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically">
-							{{ctx.Locale.Tr "admin.repos.name"}}
+							{{ctx.Locale.Tr "name"}}
 							{{SortArrow "alphabetically" "reversealphabetically" $.SortType false}}
 						</th>
 						<th>{{ctx.Locale.Tr "admin.repos.watches"}}</th>
@@ -28,7 +28,7 @@
 							{{ctx.Locale.Tr "admin.repos.forks"}}
 							{{SortArrow "mostforks" "fewestforks" $.SortType false}}
 						</th>
-						<th>{{ctx.Locale.Tr "admin.repos.issues"}}</th>
+						<th>{{ctx.Locale.Tr "issues"}}</th>
 						<th  data-sortt-asc="gitsize" data-sortt-desc="reversegitsize">
 							{{ctx.Locale.Tr "admin.repos.size"}}
 							{{SortArrow "gitsize" "reversegitsize" $.SortType false}}
@@ -58,7 +58,7 @@
 									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
 								{{end}}
 								{{if .IsPrivate}}
-									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
+									<span class="ui basic label">{{ctx.Locale.Tr "private"}}</span>
 								{{else}}
 									{{if .Owner.Visibility.IsPrivate}}
 										<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.internal"}}</span>

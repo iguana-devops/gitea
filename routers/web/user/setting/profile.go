@@ -179,7 +179,7 @@ func DeleteAvatar(ctx *context.Context) {
 
 // Organization render all the organization of the user
 func Organization(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings.organization")
+	ctx.Data["Title"] = ctx.Tr("organizations")
 	ctx.Data["PageIsSettingsOrganization"] = true
 
 	opts := organization.FindOrgOptions{
@@ -210,7 +210,7 @@ func Organization(ctx *context.Context) {
 
 // Repos display a list of all repositories of the user
 func Repos(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings.repos")
+	ctx.Data["Title"] = ctx.Tr("repositories")
 	ctx.Data["PageIsSettingsRepos"] = true
 	ctx.Data["allowAdopt"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowAdoptionOfUnadoptedRepositories
 	ctx.Data["allowDelete"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowDeleteOfUnadoptedRepositories

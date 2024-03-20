@@ -1,7 +1,7 @@
 {{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings account")}}
 	<div class="user-setting-content">
 		<h4 class="ui top attached header">
-			{{ctx.Locale.Tr "settings.password"}}
+			{{ctx.Locale.Tr "password"}}
 		</h4>
 		<div class="ui attached segment">
 			{{if or (.SignedUser.IsLocal) (.SignedUser.IsOAuth2)}}
@@ -68,7 +68,7 @@
 						{{if not .IsPrimary}}
 							<div class="right floated content">
 								<button class="ui red tiny button delete-button" data-modal-id="delete-email" data-url="{{AppSubUrl}}/user/settings/account/email/delete" data-id="{{.ID}}">
-									{{ctx.Locale.Tr "settings.delete_email"}}
+									{{ctx.Locale.Tr "remove"}}
 								</button>
 							</div>
 							{{if .CanBePrimary}}

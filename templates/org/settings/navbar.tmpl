@@ -2,7 +2,7 @@
 	<div class="ui fluid vertical menu">
 		<div class="header item">{{ctx.Locale.Tr "org.settings"}}</div>
 		<a class="{{if .PageIsSettingsOptions}}active {{end}}item" href="{{.OrgLink}}/settings">
-			{{ctx.Locale.Tr "org.settings.options"}}
+			{{ctx.Locale.Tr "organization"}}
 		</a>
 		{{if not DisableWebhooks}}
 		<a class="{{if .PageIsSettingsHooks}}active {{end}}item" href="{{.OrgLink}}/settings/hooks">
@@ -10,7 +10,7 @@
 		</a>
 		{{end}}
 		<a class="{{if .PageIsOrgSettingsLabels}}active {{end}}item" href="{{.OrgLink}}/settings/labels">
-			{{ctx.Locale.Tr "repo.labels"}}
+			{{ctx.Locale.Tr "labels"}}
 		</a>
 		{{if .EnableOAuth2}}
 		<a class="{{if .PageIsSettingsApplications}}active {{end}}item" href="{{.OrgLink}}/settings/applications">

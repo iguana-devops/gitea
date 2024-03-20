@@ -2,7 +2,7 @@
 	<div class="ui fluid vertical menu">
 		<div class="header item">{{ctx.Locale.Tr "admin.settings"}}</div>
 		<a class="{{if .PageIsAdminDashboard}}active {{end}}item" href="{{AppSubUrl}}/admin">
-			{{ctx.Locale.Tr "admin.dashboard"}}
+			{{ctx.Locale.Tr "dashboard"}}
 		</a>
 		<a class="{{if .PageIsAdminSelfCheck}}active {{end}}item" href="{{AppSubUrl}}/admin/self_check">
 			{{ctx.Locale.Tr "admin.self_check"}}
@@ -14,7 +14,7 @@
 					{{ctx.Locale.Tr "admin.authentication"}}
 				</a>
 				<a class="{{if .PageIsAdminOrganizations}}active {{end}}item" href="{{AppSubUrl}}/admin/orgs">
-					{{ctx.Locale.Tr "admin.organizations"}}
+					{{ctx.Locale.Tr "organizations"}}
 				</a>
 				<a class="{{if .PageIsAdminUsers}}active {{end}}item" href="{{AppSubUrl}}/admin/users">
 					{{ctx.Locale.Tr "admin.users"}}
@@ -33,7 +33,7 @@
 					</a>
 				{{end}}
 				<a class="{{if .PageIsAdminRepositories}}active {{end}}item" href="{{AppSubUrl}}/admin/repos">
-					{{ctx.Locale.Tr "admin.repositories"}}
+					{{ctx.Locale.Tr "repositories"}}
 				</a>
 			</div>
 		</details>
@@ -82,7 +82,7 @@
 					{{ctx.Locale.Tr "admin.config_summary"}}
 				</a>
 				<a class="{{if .PageIsAdminConfigSettings}}active {{end}}item" href="{{AppSubUrl}}/admin/config/settings">
-					{{ctx.Locale.Tr "admin.config_settings"}}
+					{{ctx.Locale.Tr "settings"}}
 				</a>
 			</div>
 		</details>
