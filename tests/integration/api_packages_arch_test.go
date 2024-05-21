@@ -8,7 +8,6 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
-	"crypto/md5"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -91,8 +90,7 @@ func TestPackageArch(t *testing.T) {
 					user.Name, p.File, hex.EncodeToString(signdata),
 				)
 
-				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data))
-				req = AddBasicAuthHeader(req, user.Name)
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).AddBasicAuth(user.Name)
 				MakeRequest(t, req, http.StatusOK)
 
 				pv, err := packages.GetVersionByNameAndVersion(
@@ -126,8 +124,7 @@ func TestPackageArch(t *testing.T) {
 					user.Name, p.File,
 				)
 
-				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data))
-				req = AddBasicAuthHeader(req, user.Name)
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).AddBasicAuth(user.Name)
 				MakeRequest(t, req, http.StatusOK)
 
 				pv, err := packages.GetVersionByNameAndVersion(
@@ -153,8 +150,7 @@ func TestPackageArch(t *testing.T) {
 					"/api/packages/%s/arch/push/%s/artix/%s",
 					user.Name, p.File, hex.EncodeToString(signdata),
 				)
-				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data))
-				req = AddBasicAuthHeader(req, user.Name)
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).AddBasicAuth(user.Name)
 				MakeRequest(t, req, http.StatusOK)
 
 				url = fmt.Sprintf(
@@ -177,8 +173,7 @@ func TestPackageArch(t *testing.T) {
 					"/api/packages/%s/arch/push/%s/arco/%s",
 					user.Name, p.File, hex.EncodeToString(signdata),
 				)
-				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data))
-				req = AddBasicAuthHeader(req, user.Name)
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).AddBasicAuth(user.Name)
 				MakeRequest(t, req, http.StatusOK)
 
 				url = fmt.Sprintf(
@@ -201,16 +196,14 @@ func TestPackageArch(t *testing.T) {
 					"/api/packages/%s/arch/push/%s/manjaro/%s",
 					user.Name, p.File, hex.EncodeToString(signdata),
 				)
-				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data))
-				req = AddBasicAuthHeader(req, user.Name)
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).AddBasicAuth(user.Name)
 				MakeRequest(t, req, http.StatusOK)
 
 				url = fmt.Sprintf(
 					"/api/packages/%s/arch/remove/%s/%s",
 					user.Name, p.Name, p.Ver,
 				)
-				req = NewRequest(t, "DELETE", url)
-				req = AddBasicAuthHeader(req, user.Name)
+				req = NewRequest(t, "DELETE", url).AddBasicAuth(user.Name)
 				MakeRequest(t, req, http.StatusOK)
 
 				_, err := packages.GetVersionByNameAndVersion(
@@ -228,8 +221,7 @@ func TestPackageArch(t *testing.T) {
 					"/api/packages/%s/arch/push/%s/ion/%s",
 					user.Name, p.File, hex.EncodeToString(signdata),
 				)
-				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data))
-				req = AddBasicAuthHeader(req, user.Name)
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).AddBasicAuth(user.Name)
 				MakeRequest(t, req, http.StatusOK)
 			}
 
@@ -243,8 +235,7 @@ func TestPackageArch(t *testing.T) {
 					"/api/packages/%s/arch/push/%s/ion/%s",
 					user.Name, p.File, hex.EncodeToString(signdata),
 				)
-				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data))
-				req = AddBasicAuthHeader(req, user.Name)
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).AddBasicAuth(user.Name)
 				MakeRequest(t, req, http.StatusOK)
 			}
 		}
@@ -346,7 +337,7 @@ func BuildArchPackage(t *testing.T, name, ver, architecture string) *TestArchPac
 	})
 	assert.NoError(t, errors.Join(mfile.Close(), archive.Close(), err))
 
-	md5, sha256, size := archPkgParams(buf.Bytes())
+	sha256, size := archPkgParams(buf.Bytes())
 
 	return &TestArchPackage{
 		Data: buf.Bytes(),
@@ -362,7 +353,6 @@ func BuildArchPackage(t *testing.T, name, ver, architecture string) *TestArchPac
 			},
 			FileMetadata: arch.FileMetadata{
 				CompressedSize: size,
-				MD5:            hex.EncodeToString(md5),
 				SHA256:         hex.EncodeToString(sha256),
 				Arch:           architecture,
 			},
@@ -370,15 +360,14 @@ func BuildArchPackage(t *testing.T, name, ver, architecture string) *TestArchPac
 	}
 }
 
-func archPkgParams(b []byte) ([]byte, []byte, int64) {
-	md5 := md5.New()
+func archPkgParams(b []byte) ([]byte, int64) {
 	sha256 := sha256.New()
 	c := counter{bytes.NewReader(b), 0}
 
-	br := bufio.NewReader(io.TeeReader(&c, io.MultiWriter(md5, sha256)))
+	br := bufio.NewReader(io.TeeReader(&c, io.MultiWriter(sha256)))
 
 	io.ReadAll(br)
-	return md5.Sum(nil), sha256.Sum(nil), int64(c.n)
+	return sha256.Sum(nil), int64(c.n)
 }
 
 type counter struct {

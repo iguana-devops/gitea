@@ -36,12 +36,12 @@ func Push(ctx *context.Context) {
 		sign   = ctx.Params("sign")
 	)
 
-	upload, close, err := ctx.UploadStream()
+	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if close {
+	if needToClose {
 		defer upload.Close()
 	}
 
