@@ -5,12 +5,21 @@ package arch
 
 import (
 	"bytes"
+	"encoding/base64"
+	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/base"
+	packages_module "code.gitea.io/gitea/modules/packages"
+	arch_module "code.gitea.io/gitea/modules/packages/arch"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 	arch_service "code.gitea.io/gitea/services/packages/arch"
 )
@@ -21,12 +30,10 @@ func apiError(ctx *context.Context, status int, obj any) {
 	})
 }
 
-// Push new package to arch package registry.
 func Push(ctx *context.Context) {
 	var (
-		filename = ctx.Params("filename")
-		distro   = ctx.Params("distro")
-		sign     = ctx.Params("sign")
+		distro = ctx.Params("distro")
+		sign   = ctx.Params("sign")
 	)
 
 	upload, close, err := ctx.UploadStream()
@@ -38,7 +45,70 @@ func Push(ctx *context.Context) {
 		defer upload.Close()
 	}
 
-	_, _, err = arch_service.UploadArchPackage(ctx, upload, filename, distro, sign)
+	buf, err := packages_module.CreateHashedBufferFromReader(upload)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer buf.Close()
+
+	_, _, sha256, _ := buf.Sums()
+
+	p, err := arch_module.ParsePackage(buf, sha256, buf.Size())
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	_, err = buf.Seek(0, io.SeekStart)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	properties := map[string]string{
+		arch_module.PropertyDescription:    p.Desc(),
+		arch_module.PropertyCompressedSize: base.FileSize(p.FileMetadata.CompressedSize),
+		arch_module.PropertyInstalledSize:  base.FileSize(p.FileMetadata.InstalledSize),
+		arch_module.PropertySHA256:         p.FileMetadata.SHA256,
+		arch_module.PropertyBuildDate:      time.Unix(p.FileMetadata.BuildDate, 0).Format(time.RFC3339),
+		arch_module.PropertyPackager:       p.FileMetadata.Packager,
+		arch_module.PropertyArch:           p.FileMetadata.Arch,
+		arch_module.PropertyDistribution:   distro,
+	}
+	if sign != "" {
+		_, err := base64.RawURLEncoding.DecodeString(sign)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		properties[arch_module.PropertySignature] = sign
+	}
+
+	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+		ctx,
+		&packages_service.PackageCreationInfo{
+			PackageInfo: packages_service.PackageInfo{
+				Owner:       ctx.Package.Owner,
+				PackageType: packages_model.TypeArch,
+				Name:        p.Name,
+				Version:     p.Version,
+			},
+			Creator:  ctx.Doer,
+			Metadata: p.VersionMetadata,
+		},
+		&packages_service.PackageFileCreationInfo{
+			PackageFileInfo: packages_service.PackageFileInfo{
+				Filename:     fmt.Sprintf("%s-%s-%s.pkg.tar.zst", p.Name, p.Version, p.FileMetadata.Arch),
+				CompositeKey: distro,
+			},
+			OverwriteExisting: true,
+			IsLead:            true,
+			Creator:           ctx.ContextUser,
+			Data:              buf,
+			Properties:        properties,
+		},
+	)
 	if err != nil {
 		switch err {
 		case packages_model.ErrDuplicatePackageVersion, packages_model.ErrDuplicatePackageFile:
@@ -54,7 +124,6 @@ func Push(ctx *context.Context) {
 	ctx.Status(http.StatusOK)
 }
 
-// Get file from arch package registry.
 func Get(ctx *context.Context) {
 	var (
 		file   = ctx.Params("file")
@@ -64,9 +133,13 @@ func Get(ctx *context.Context) {
 	)
 
 	if strings.HasSuffix(file, ".pkg.tar.zst") {
-		pkg, err := arch_service.GetPackageFile(ctx, distro, file)
+		pkg, err := arch_service.GetPackageFile(ctx, distro, file, ctx.Package.Owner.ID)
 		if err != nil {
-			apiError(ctx, http.StatusNotFound, err)
+			if errors.Is(err, util.ErrNotExist) {
+				apiError(ctx, http.StatusNotFound, err)
+			} else {
+				apiError(ctx, http.StatusInternalServerError, err)
+			}
 			return
 		}
 
@@ -77,9 +150,13 @@ func Get(ctx *context.Context) {
 	}
 
 	if strings.HasSuffix(file, ".pkg.tar.zst.sig") {
-		sig, err := arch_service.GetPackageSignature(ctx, distro, file)
+		sig, err := arch_service.GetPackageSignature(ctx, distro, file, ctx.Package.Owner.ID)
 		if err != nil {
-			apiError(ctx, http.StatusNotFound, err)
+			if errors.Is(err, util.ErrNotExist) {
+				apiError(ctx, http.StatusNotFound, err)
+			} else {
+				apiError(ctx, http.StatusInternalServerError, err)
+			}
 			return
 		}
 
@@ -90,7 +167,7 @@ func Get(ctx *context.Context) {
 	}
 
 	if strings.HasSuffix(file, ".db.tar.gz") || strings.HasSuffix(file, ".db") {
-		db, err := arch_service.CreatePacmanDb(ctx, owner, arch, distro)
+		db, err := arch_service.CreatePacmanDb(ctx, owner, arch, distro, ctx.Package.Owner.ID)
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
@@ -105,31 +182,37 @@ func Get(ctx *context.Context) {
 	ctx.Status(http.StatusNotFound)
 }
 
-// Remove specific package version, related files with properties.
 func Remove(ctx *context.Context) {
 	var (
-		pkg = ctx.Params("package")
-		ver = ctx.Params("version")
+		pkg    = ctx.Params("package")
+		ver    = ctx.Params("version")
+		distro = ctx.Params("distro")
+		arch   = ctx.Params("arch")
 	)
 
-	version, err := packages_model.GetVersionByNameAndVersion(
-		ctx, ctx.Package.Owner.ID, packages_model.TypeArch, pkg, ver,
-	)
+	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
+		OwnerID:      ctx.Package.Owner.ID,
+		PackageType:  packages_model.TypeArch,
+		Query:        fmt.Sprintf("%s-%s-%s.pkg.tar.zst", pkg, arch, ver),
+		CompositeKey: distro,
+	})
 	if err != nil {
-		switch err {
-		case packages_model.ErrPackageNotExist:
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(pfs) != 1 {
+		apiError(ctx, http.StatusNotFound, nil)
+		return
+	}
+
+	if err := packages_service.RemovePackageFileAndVersionIfUnreferenced(ctx, ctx.Doer, pfs[0]); err != nil {
+		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
-		default:
+		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
 		return
 	}
 
-	err = packages_service.RemovePackageVersion(ctx, ctx.Package.Owner, version)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	ctx.Status(http.StatusOK)
+	ctx.Status(http.StatusNoContent)
 }

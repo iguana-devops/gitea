@@ -82,7 +82,7 @@ arch = x86_64
 		})
 		assert.NoError(t, errors.Join(mfile.Close(), archive.Close(), err))
 
-		_, err = ParsePackage(&buf, []byte{}, []byte{}, 0)
+		_, err = ParsePackage(&buf, []byte{}, 0)
 
 		assert.NoError(t, err)
 	})
@@ -95,7 +95,7 @@ arch = x86_64
 
 		assert.NoError(t, archive.Close())
 
-		_, err = ParsePackage(&buf, []byte{}, []byte{}, 0)
+		_, err = ParsePackage(&buf, []byte{}, 0)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), ".PKGINFO file not found")
@@ -119,7 +119,7 @@ arch = x86_64
 		})
 		assert.NoError(t, errors.Join(pfile.Close(), archive.Close(), err))
 
-		_, err = ParsePackage(&buf, []byte{}, []byte{}, 0)
+		_, err = ParsePackage(&buf, []byte{}, 0)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), ".MTREE file not found")
@@ -195,7 +195,6 @@ func TestValidatePackageSpec(t *testing.T) {
 			FileMetadata: FileMetadata{
 				CompressedSize: 1,
 				InstalledSize:  2,
-				MD5:            "abc",
 				SHA256:         "def",
 				BuildDate:      3,
 				Packager:       "smon",
@@ -424,7 +423,6 @@ dummy6
 		FileMetadata: FileMetadata{
 			CompressedSize: 401,
 			InstalledSize:  1500453,
-			MD5:            "5016660ef3d9aa148a7b72a08d3df1b2",
 			SHA256:         "9fa4ede47e35f5971e4f26ecadcbfb66ab79f1d638317ac80334a3362dedbabd",
 			BuildDate:      1681646714,
 			Packager:       "Jelle van der Waa <jelle@archlinux.org>",

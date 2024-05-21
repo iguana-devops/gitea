@@ -23,13 +23,22 @@ import (
 	"github.com/mholt/archiver/v3"
 )
 
+// Arch Linux Packages
+// https://man.archlinux.org/man/PKGBUILD.5
+
 const (
-	PropertyDescription = "arch.description"
-	PropertySignature   = "arch.signature"
+	PropertyDescription    = "arch.description"
+	PropertySignature      = "arch.signature"
+	PropertyCompressedSize = "arch.compsize"
+	PropertyInstalledSize  = "arch.inssize"
+	PropertySHA256         = "arch.sha256"
+	PropertyBuildDate      = "arch.builddate"
+	PropertyPackager       = "arch.packager"
+	PropertyArch           = "arch.architecture"
+	PropertyDistribution   = "arch.distribution"
 )
 
 var (
-	// https://man.archlinux.org/man/PKGBUILD.5
 	reName   = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$`)
 	reVer    = regexp.MustCompile(`^[a-zA-Z0-9:_.+]+-+[0-9]+$`)
 	reOptDep = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$|^[a-zA-Z0-9@._+-]+(:.*)`)
@@ -38,7 +47,7 @@ var (
 
 type Package struct {
 	Name            string `json:"name"`
-	Version         string `json:"version"`
+	Version         string `json:"version"` // Includes version, release and epoch
 	VersionMetadata VersionMetadata
 	FileMetadata    FileMetadata
 }
@@ -56,7 +65,10 @@ type VersionMetadata struct {
 	OptDepends   []string `json:"opt_depends,omitempty"`
 	MakeDepends  []string `json:"make_depends,omitempty"`
 	CheckDepends []string `json:"check_depends,omitempty"`
+	Conflicts    []string `json:"conflicts,omitempty"`
+	Replaces     []string `json:"replaces,omitempty"`
 	Backup       []string `json:"backup,omitempty"`
+	Xdata        []string `json:"xdata,omitempty"`
 }
 
 // Metadata related to specific pakcage file.
@@ -64,7 +76,6 @@ type VersionMetadata struct {
 type FileMetadata struct {
 	CompressedSize int64  `json:"compressed_size"`
 	InstalledSize  int64  `json:"installed_size"`
-	MD5            string `json:"md5"`
 	SHA256         string `json:"sha256"`
 	BuildDate      int64  `json:"build_date"`
 	Packager       string `json:"packager"`
@@ -72,7 +83,7 @@ type FileMetadata struct {
 }
 
 // Function that receives arch package archive data and returns it's metadata.
-func ParsePackage(r io.Reader, md5, sha256 []byte, size int64) (*Package, error) {
+func ParsePackage(r io.Reader, sha256 []byte, size int64) (*Package, error) {
 	zstd := archiver.NewTarZstd()
 	err := zstd.Open(r, 0)
 	if err != nil {
@@ -114,7 +125,6 @@ func ParsePackage(r io.Reader, md5, sha256 []byte, size int64) (*Package, error)
 
 	pkg.FileMetadata.CompressedSize = size
 	pkg.FileMetadata.SHA256 = hex.EncodeToString(sha256)
-	pkg.FileMetadata.MD5 = hex.EncodeToString(md5)
 
 	return pkg, nil
 }
@@ -171,6 +181,12 @@ func ParsePackageInfo(r io.Reader) (*Package, error) {
 			p.VersionMetadata.Backup = append(p.VersionMetadata.Backup, value)
 		case "group":
 			p.VersionMetadata.Groups = append(p.VersionMetadata.Groups, value)
+		case "conflict":
+			p.VersionMetadata.Conflicts = append(p.VersionMetadata.Conflicts, value)
+		case "replaces":
+			p.VersionMetadata.Replaces = append(p.VersionMetadata.Replaces, value)
+		case "xdata":
+			p.VersionMetadata.Xdata = append(p.VersionMetadata.Xdata, value)
 		case "builddate":
 			bd, err := strconv.ParseInt(value, 10, 64)
 			if err != nil {
@@ -183,6 +199,8 @@ func ParsePackageInfo(r io.Reader) (*Package, error) {
 				return nil, err
 			}
 			p.FileMetadata.InstalledSize = is
+		default:
+			return nil, util.NewInvalidArgumentErrorf("property is not supported %s", key)
 		}
 	}
 
@@ -228,6 +246,21 @@ func ValidatePackageSpec(p *Package) error {
 			return util.NewInvalidArgumentErrorf("invalid provides: " + p)
 		}
 	}
+	for _, p := range p.VersionMetadata.Conflicts {
+		if !rePkgVer.MatchString(p) {
+			return util.NewInvalidArgumentErrorf("invalid conflicts: " + p)
+		}
+	}
+	for _, p := range p.VersionMetadata.Replaces {
+		if !rePkgVer.MatchString(p) {
+			return util.NewInvalidArgumentErrorf("invalid replaces: " + p)
+		}
+	}
+	for _, p := range p.VersionMetadata.Replaces {
+		if !rePkgVer.MatchString(p) {
+			return util.NewInvalidArgumentErrorf("invalid xdata: " + p)
+		}
+	}
 	for _, od := range p.VersionMetadata.OptDepends {
 		if !reOptDep.MatchString(od) {
 			return util.NewInvalidArgumentErrorf("invalid optional dependency: " + od)
@@ -243,7 +276,7 @@ func ValidatePackageSpec(p *Package) error {
 
 // Create pacman package description file.
 func (p *Package) Desc() string {
-	entries := [40]string{
+	entries := [44]string{
 		"FILENAME", fmt.Sprintf("%s-%s-%s.pkg.tar.zst", p.Name, p.Version, p.FileMetadata.Arch),
 		"NAME", p.Name,
 		"BASE", p.VersionMetadata.Base,
@@ -252,13 +285,14 @@ func (p *Package) Desc() string {
 		"GROUPS", strings.Join(p.VersionMetadata.Groups, "\n"),
 		"CSIZE", fmt.Sprintf("%d", p.FileMetadata.CompressedSize),
 		"ISIZE", fmt.Sprintf("%d", p.FileMetadata.InstalledSize),
-		"MD5SUM", p.FileMetadata.MD5,
 		"SHA256SUM", p.FileMetadata.SHA256,
 		"URL", p.VersionMetadata.ProjectURL,
 		"LICENSE", strings.Join(p.VersionMetadata.License, "\n"),
 		"ARCH", p.FileMetadata.Arch,
 		"BUILDDATE", fmt.Sprintf("%d", p.FileMetadata.BuildDate),
 		"PACKAGER", p.FileMetadata.Packager,
+		"REPLACES", strings.Join(p.VersionMetadata.Replaces, "\n"),
+		"CONFLICTS", strings.Join(p.VersionMetadata.Conflicts, "\n"),
 		"PROVIDES", strings.Join(p.VersionMetadata.Provides, "\n"),
 		"DEPENDS", strings.Join(p.VersionMetadata.Depends, "\n"),
 		"OPTDEPENDS", strings.Join(p.VersionMetadata.OptDepends, "\n"),
