@@ -725,6 +725,8 @@ func registerRoutes(m *web.Route) {
 			m.Get("/{badgeid}", admin.ViewBadge)
 			m.Combo("/{badgeid}/edit").Get(admin.EditBadge).Post(web.Bind(forms.AdminCreateBadgeForm{}), admin.EditBadgePost)
 			m.Post("/{badgeid}/delete", admin.DeleteBadge)
+			m.Combo("/{badgeid}/users").Get(admin.BadgeUsers).Post(admin.BadgeUsersPost)
+			m.Post("/{badgeid}/users/delete", admin.DeleteBadgeUser)
 		})
 
 		m.Group("/emails", func() {
