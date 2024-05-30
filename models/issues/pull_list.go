@@ -9,8 +9,10 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 
@@ -48,7 +50,7 @@ func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullR
 }
 
 // GetUnmergedPullRequestsByHeadInfo returns all pull requests that are open and has not been merged
-func GetUnmergedPullRequestsByHeadInfo(ctx context.Context, repoID int64, branch string) ([]*PullRequest, error) {
+func GetUnmergedPullRequestsByHeadInfo(ctx context.Context, repoID int64, branch string) (PullRequestList, error) {
 	prs := make([]*PullRequest, 0, 2)
 	sess := db.GetEngine(ctx).
 		Join("INNER", "issue", "issue.id = pull_request.issue_id").
@@ -56,29 +58,30 @@ func GetUnmergedPullRequestsByHeadInfo(ctx context.Context, repoID int64, branch
 	return prs, sess.Find(&prs)
 }
 
-// CanMaintainerWriteToBranch check whether user is a maintainer and could write to the branch
-func CanMaintainerWriteToBranch(ctx context.Context, p access_model.Permission, branch string, user *user_model.User) bool {
+func CanUserWriteToBranch(ctx context.Context, p access_model.Permission, headRepoID int64, branch string, user *user_model.User) bool {
 	if p.CanWrite(unit.TypeCode) {
 		return true
 	}
 
-	// the code below depends on units to get the repository ID, not ideal but just keep it for now
-	firstUnitRepoID := p.GetFirstUnitRepoID()
-	if firstUnitRepoID == 0 {
-		return false
-	}
+	return canMaintainerWriteToHeadBranch(ctx, headRepoID, branch, user)
+}
 
-	prs, err := GetUnmergedPullRequestsByHeadInfo(ctx, firstUnitRepoID, branch)
+// canMaintainerWriteToHeadBranch check whether user is a maintainer and could write to the branch
+func canMaintainerWriteToHeadBranch(ctx context.Context, headRepoID int64, branch string, user *user_model.User) bool {
+	prs, err := GetUnmergedPullRequestsByHeadInfo(ctx, headRepoID, branch)
 	if err != nil {
+		log.Error("GetUnmergedPullRequestsByHeadInfo: %v", err)
 		return false
 	}
 
+	if err := prs.LoadBaseRepos(ctx); err != nil {
+		log.Error("LoadBaseRepos: %v", err)
+		return false
+	}
+
+	// user can write to the branch once one pull request allowed the user edit the branch
 	for _, pr := range prs {
 		if pr.AllowMaintainerEdit {
-			err = pr.LoadBaseRepo(ctx)
-			if err != nil {
-				continue
-			}
 			prPerm, err := access_model.GetUserRepoPermission(ctx, pr.BaseRepo, user)
 			if err != nil {
 				continue
@@ -159,7 +162,9 @@ func (prs PullRequestList) LoadAttributes(ctx context.Context) error {
 	}
 
 	// Load issues.
-	issueIDs := prs.GetIssueIDs()
+	issueIDs := container.FilterSlice(prs, func(pr *PullRequest) (int64, bool) {
+		return pr.IssueID, pr.Issue == nil
+	})
 	issues := make([]*Issue, 0, len(issueIDs))
 	if err := db.GetEngine(ctx).
 		Where("id > 0").
@@ -190,13 +195,22 @@ func (prs PullRequestList) LoadAttributes(ctx context.Context) error {
 	return nil
 }
 
-// GetIssueIDs returns all issue ids
-func (prs PullRequestList) GetIssueIDs() []int64 {
-	issueIDs := make([]int64, 0, len(prs))
-	for i := range prs {
-		issueIDs = append(issueIDs, prs[i].IssueID)
+func (prs PullRequestList) LoadBaseRepos(ctx context.Context) error {
+	baseRepoIDs := container.FilterSlice(prs, func(pr *PullRequest) (int64, bool) {
+		return pr.BaseRepoID, pr.BaseRepo == nil
+	})
+	reposMap := make(map[int64]*repo_model.Repository, len(baseRepoIDs))
+	if err := db.GetEngine(ctx).
+		In("id", baseRepoIDs).
+		Find(&reposMap); err != nil {
+		return fmt.Errorf("find repos: %w", err)
 	}
-	return issueIDs
+	for _, pr := range prs {
+		if pr.BaseRepo == nil {
+			pr.BaseRepo = reposMap[pr.BaseRepoID]
+		}
+	}
+	return nil
 }
 
 // HasMergedPullRequestInRepo returns whether the user(poster) has merged pull-request in the repo
