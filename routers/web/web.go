@@ -458,6 +458,15 @@ func registerRoutes(m *web.Route) {
 		})
 	}
 
+	// WIP RequireAction
+	addSettingsRequireActionRoutes := func() {
+		m.Group("/require_action", func() {
+			m.Get("", repo_setting.RequireAction)
+			m.Post("/add", web.Bind(forms.RequireActionForm{}), repo_setting.RequireActionCreate)
+			m.Post("/{require_action_id}/delete", repo_setting.RequireActionDelete)
+		})
+	}
+
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 
@@ -629,6 +638,7 @@ func registerRoutes(m *web.Route) {
 
 		m.Group("/actions", func() {
 			m.Get("", user_setting.RedirectToDefaultSetting)
+			addSettingsRequireActionRoutes()
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
@@ -928,6 +938,7 @@ func registerRoutes(m *web.Route) {
 
 				m.Group("/actions", func() {
 					m.Get("", org_setting.RedirectToDefaultSetting)
+					addSettingsRequireActionRoutes()
 					addSettingsRunnersRoutes()
 					addSettingsSecretsRoutes()
 					addSettingsVariablesRoutes()
@@ -1376,10 +1387,12 @@ func registerRoutes(m *web.Route) {
 	}, ignSignIn, context.RepoAssignment, reqRepoProjectsReader, repo.MustEnableRepoProjects)
 	// end "/{username}/{reponame}/projects"
 
-	m.Group("/{username}/{reponame}/actions", func() {
+	m.Group("/actions", func() {
 		m.Get("", actions.List)
 		m.Post("/disable", reqRepoAdmin, actions.DisableWorkflowFile)
 		m.Post("/enable", reqRepoAdmin, actions.EnableWorkflowFile)
+		m.Post("/global_disable", reqRepoAdmin, actions.DisableGlobalWorkflowFile)
+		m.Post("/global_enable", reqRepoAdmin, actions.EnableGlobalWorkflowFile)
 
 		m.Group("/runs/{run}", func() {
 			m.Combo("").
