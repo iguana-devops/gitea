@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/packages/alpine"
+	"code.gitea.io/gitea/routers/api/packages/arch"
 	"code.gitea.io/gitea/routers/api/packages/cargo"
 	"code.gitea.io/gitea/routers/api/packages/chef"
 	"code.gitea.io/gitea/routers/api/packages/composer"
@@ -120,6 +121,12 @@ func CommonRoutes() *web.Route {
 					})
 				})
 			})
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/arch", func() {
+			r.Put("/push/{distro}", reqPackageAccess(perm.AccessModeWrite), arch.Push)
+			r.Put("/push/{distro}/{sign}", reqPackageAccess(perm.AccessModeWrite), arch.Push)
+			r.Get("/{distro}/{arch}/{file}", arch.Get)
+			r.Delete("/remove/{package}/{version}/{distro}/{arch}", reqPackageAccess(perm.AccessModeWrite), arch.Remove)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/cargo", func() {
 			r.Group("/api/v1/crates", func() {
